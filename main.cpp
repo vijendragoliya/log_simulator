@@ -8,10 +8,12 @@
 #include<algorithm>
 #include<list>
 #include<mutex>
+#include <sys/types.h>
+#include <sys/stat.h>
 using namespace std;
 using namespace std::chrono;
 
-void LogSimulator_wrapper(int tindex, vector<string> &timeStampFormats,vector<vector<string>> &logLevels, int &thread_count, int &remainingFiles, int &filesPerThread, int &cores, mutex &mtx)
+void LogSimulator_wrapper(int tindex, vector<string> &timeStampFormats,vector<vector<string>> &logLevels, int &thread_count, int &remainingFiles, int &filesPerThread, int &cores, mutex &mtx, string &mydir)
 {
         ++thread_count;
         string fileName;
@@ -20,7 +22,7 @@ void LogSimulator_wrapper(int tindex, vector<string> &timeStampFormats,vector<ve
                 int i = 0;
                 for(i = tindex*filesPerThread; i<(filesPerThread + tindex*filesPerThread); i++)
                 {
-                        fileName = static_cast<string>("log_" + to_string(i) + ".log");
+                        fileName = static_cast<string>(mydir + "log_" + to_string(i) + ".log");
                         vec.push_back(make_pair(new LogSimulator(fileName), i));
                         cout <<"Log_file_wrapper1::"<<std::this_thread::get_id()<<" => "<<fileName <<", fileindex: " <<i << " "<<filesPerThread <<endl;
                 }
@@ -49,7 +51,17 @@ void LogSimulator_wrapper(int tindex, vector<string> &timeStampFormats,vector<ve
         --thread_count;
 }
 
+int dirExists(string mydir)
+{
+    struct stat info;
 
+    if(stat( mydir.c_str(), &info ) != 0)
+        return 0;
+    else if(info.st_mode & S_IFDIR)
+        return 1;
+    else
+        return 0;
+}
 int main()
 {
         vector <string> timeStampFormats;
@@ -74,6 +86,14 @@ int main()
         }
         cout << "Enter the number of files to be generated : ";
         cin>>numOfFiles;
+        string mydir;
+        cout << "Enter the directory(followed by forward slash /) in which files will be generated : ";
+        cin >> mydir;
+        if(dirExists(mydir)!=1)
+        {
+                cout<<"Entered directory does not exists"<<endl;
+                exit(2);
+        }
         int cores = NUMOFTHREADS;
         //int cores = 5;
         static int thread_count = 0;
